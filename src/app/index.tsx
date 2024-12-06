@@ -1,92 +1,15 @@
-import React from 'react';
-import { NavigationContainer } from '@react-navigation/native';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { RecoilRoot } from 'recoil';
-import { Provider as ReduxProvider } from 'react-redux';
-import { store } from '../store/redux/store';
-import { Provider as ContextProvider } from '../store/context/Provider';
-import { StoreProvider as MobxStoreProvider } from '../store/mobx/StoreProvider';
-import { Provider as JotaiProvider } from 'jotai';
+import { View, Text } from 'react-native';
 
-import ReduxScreen from '../screens/ReduxScreen';
-import MobxScreen from '../screens/MobxScreen';
-import ZustandScreen from '../screens/ZustandScreen';
-import RecoilScreen from '../screens/RecoilScreen';
-import ContextScreen from '../screens/ContextScreen';
-import JotaiScreen from '../screens/JotaiScreen';
-
-const Tab = createBottomTabNavigator();
-
-export default function App() {
+export default function HomeScreen() {
   return (
-    <RecoilRoot>
-      <ContextProvider>
-        <MobxStoreProvider>
-          <JotaiProvider>
-            <ReduxProvider store={store}>
-              <NavigationContainer>
-                <Tab.Navigator
-                  screenOptions={{
-                    tabBarLabelStyle: {
-                      fontSize: 12,
-                      fontWeight: '600',
-                    },
-                    headerStyle: {
-                      backgroundColor: '#f3f4f6',
-                    },
-                    tabBarStyle: {
-                      backgroundColor: '#f3f4f6',
-                    },
-                  }}
-                >
-                  <Tab.Screen 
-                    name="Redux" 
-                    component={ReduxScreen}
-                    options={{
-                      title: 'Redux Toolkit'
-                    }}
-                  />
-                  <Tab.Screen 
-                    name="Mobx" 
-                    component={MobxScreen}
-                    options={{
-                      title: 'MobX'
-                    }}
-                  />
-                  <Tab.Screen 
-                    name="Zustand" 
-                    component={ZustandScreen}
-                    options={{
-                      title: 'Zustand'
-                    }}
-                  />
-                  <Tab.Screen 
-                    name="Recoil" 
-                    component={RecoilScreen}
-                    options={{
-                      title: 'Recoil'
-                    }}
-                  />
-                  <Tab.Screen 
-                    name="Context" 
-                    component={ContextScreen}
-                    options={{
-                      title: 'Context API'
-                    }}
-                  />
-                  <Tab.Screen 
-                    name="Jotai" 
-                    component={JotaiScreen}
-                    options={{
-                      title: 'Jotai'
-                    }}
-                  />
-                </Tab.Navigator>
-              </NavigationContainer>
-            </ReduxProvider>
-          </JotaiProvider>
-        </MobxStoreProvider>
-      </ContextProvider>
-    </RecoilRoot>
+    <View className="flex-1 items-center justify-center p-4">
+      <Text className="text-2xl font-bold mb-4">
+        State Management Demo
+      </Text>
+      <Text className="text-center text-gray-600">
+        This app demonstrates different state management solutions in React Native.
+        Use the tabs below to explore each implementation.
+      </Text>
+    </View>
   );
 }

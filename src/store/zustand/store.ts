@@ -1,4 +1,4 @@
-import create from 'zustand';
+import { create } from 'zustand';
 
 interface StoreState {
   counter: number;
@@ -9,13 +9,13 @@ interface StoreState {
   removeTodo: (index: number) => void;
 }
 
-const useStore = create<StoreState>((set) => ({
+const useStore = create<StoreState>()((set) => ({
   counter: 0,
   todos: [],
   increment: () => set((state) => ({ counter: state.counter + 1 })),
   decrement: () => set((state) => ({ counter: state.counter - 1 })),
-  addTodo: (todo) => set((state) => ({ todos: [...state.todos, todo] })),
-  removeTodo: (index) =>
+  addTodo: (todo: string) => set((state) => ({ todos: [...state.todos, todo] })),
+  removeTodo: (index: number) =>
     set((state) => ({ todos: state.todos.filter((_, i) => i !== index) }))
 }));
 
