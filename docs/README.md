@@ -1,5 +1,4 @@
-# 🔥 statefolio 🔥 
-# the react native state management showdown 
+# 🔥 statefolio 🔥 - the React Native state management showdown
 
 Hey there, fellow React Native developer! 👋 Tired of scratching your head over which state management solution to pick? We've all been there! Let's make this journey fun and insightful.
 
