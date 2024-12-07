@@ -9,6 +9,7 @@
     "web": "expo start --web"
   },
   "dependencies": {
+    "@reduxjs/toolkit": "^2.4.0",
     "expo": "~52.0.15",
     "expo-blur": "~14.0.1",
     "expo-constants": "~17.0.3",
@@ -27,11 +28,13 @@
     "react-native-safe-area-context": "4.12.0",
     "react-native-screens": "~4.1.0",
     "react-native-web": "~0.19.13",
+    "react-redux": "^9.1.2",
     "tailwindcss": "^3.4.16"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
     "@types/react": "~18.3.12",
+    "babel-plugin-module-resolver": "^5.0.2",
     "typescript": "^5.3.3"
   },
   "private": true
