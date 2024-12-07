@@ -31,17 +31,21 @@ const RootLayout = () => {
   if (!loaded) {
     return null;
   }
+
   return (
     <>
       <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
-        <StatusBar style='auto' />
+        <StatusBar style={colorScheme === "dark" ? "light" : "dark"} />
         <Stack
-          screenOptions={{ headerShown: false, headerTitleAlign: "center" }}
+          screenOptions={{
+            headerShown: false,
+            headerTitleAlign: "center",
+            contentStyle: {
+              backgroundColor: colorScheme === "dark" ? "#111827" : "#F9FAFB",
+            },
+          }}
         >
-          <Stack.Screen
-            name='index'
-            options={{ headerShown: true, headerTitle: "Home" }}
-          />
+          <Stack.Screen name='index' options={{ headerShown: false }} />
         </Stack>
       </ThemeProvider>
     </>
