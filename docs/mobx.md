@@ -1,300 +1,169 @@
 # MobX Implementation Guide
 
-## Setup
+## Implementation in Expo Router
 
-1. Install dependencies:
-
-```bash
-npm install mobx mobx-react-lite
-```
-
-## Store Implementation
-
-```typescript
-// src/store/mobx/store.ts
+```typescript:src/app/mobx.tsx
+import React from "react";
 import { makeAutoObservable } from "mobx";
+import { observer } from "mobx-react-lite";
+import { BaseScreen } from "../components/BaseScreen";
+import { Text, View, Pressable, useColorScheme } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-class RootStore {
-  counter = new CounterStore();
-  todos = new TodoStore();
+// Types
+interface Todo {
+  id: string;
+  text: string;
 }
 
-class CounterStore {
-  value = 0;
+// Store
+class Store {
+  // Counter state
+  count = 0;
+
+  // Todos state
+  todos: Todo[] = [];
 
   constructor() {
     makeAutoObservable(this);
   }
 
+  // Counter actions
   increment = () => {
-    this.value++;
+    this.count += 1;
   };
 
   decrement = () => {
-    this.value--;
+    this.count -= 1;
   };
+
+  // Todos actions
+  addTodo = (text: string) => {
+    this.todos.push({
+      id: Date.now().toString(),
+      text,
+    });
+  };
+
+  removeTodo = (id: string) => {
+    this.todos = this.todos.filter((todo) => todo.id !== id);
+  };
+
+  // Computed values
+  get todoStats() {
+    return {
+      total: this.todos.length,
+      isEmpty: this.todos.length === 0,
+    };
+  }
 }
 
-class TodoStore {
-  todos: string[] = [];
-
-  constructor() {
-    makeAutoObservable(this);
-  }
-
-  addTodo = (todo: string) => {
-    this.todos.push(todo);
-  };
-
-  removeTodo = (index: number) => {
-    this.todos.splice(index, 1);
-  };
-
-  get todoCount() {
-    return this.todos.length;
-  }
-}
-
-export const rootStore = new RootStore();
+// Create store instance
+const store = new Store();
 ```
 
-## Store Provider Setup
+## Screen Implementation with Safe Areas and Dark Mode
 
-```typescript
-// src/store/mobx/StoreProvider.tsx
-import React, { createContext, useContext } from "react";
-import { RootStore } from "./store";
-
-const StoreContext = createContext<RootStore | null>(null);
-
-export const StoreProvider: React.FC<{
-  children: React.ReactNode;
-  store: RootStore;
-}> = ({ children, store }) => {
-  return (
-    <StoreContext.Provider value={store}>{children}</StoreContext.Provider>
-  );
-};
-
-export const useStore = () => {
-  const store = useContext(StoreContext);
-  if (!store) {
-    throw new Error("useStore must be used within a StoreProvider");
-  }
-  return store;
-};
-```
-
-## Screen Implementation
-
-```typescript
-// src/screens/MobxScreen.tsx
-import React, { useState } from "react";
-import { View, Text, TextInput, Button, FlatList } from "react-native";
-import { observer } from "mobx-react-lite";
-import { useStore } from "../store/mobx/StoreProvider";
-
-export const MobxScreen = observer(() => {
-  const { counter, todos } = useStore();
-  const [newTodo, setNewTodo] = useState("");
+```typescript:src/app/mobx.tsx
+export default observer(function MobXScreen() {
+  const insets = useSafeAreaInsets();
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === "dark";
 
   return (
-    <View className='p-4'>
+    <View
+      style={{
+        flex: 1,
+        paddingTop: insets.top,
+        backgroundColor: isDark ? "#000" : "#fff",
+      }}
+    >
       {/* Counter Section */}
-      <View className='mb-8'>
-        <Text className='text-xl font-bold mb-4'>Counter: {counter.value}</Text>
-        <View className='flex-row space-x-4'>
-          <Button title='Increment' onPress={counter.increment} />
-          <Button title='Decrement' onPress={counter.decrement} />
+      <View className="mb-8">
+        <Text className={`text-xl font-bold mb-4 ${isDark ? "text-white" : "text-black"}`}>
+          Counter: {store.count}
+        </Text>
+        <View className="flex-row space-x-4">
+          <Button title="Increment" onPress={store.increment} />
+          <Button title="Decrement" onPress={store.decrement} />
         </View>
       </View>
 
       {/* Todo Section */}
       <View>
-        <Text className='text-xl font-bold mb-4'>
-          Todos ({todos.todoCount})
+        <Text className={`text-xl font-bold mb-4 ${isDark ? "text-white" : "text-black"}`}>
+          Todos ({store.todoStats.total})
         </Text>
-        <View className='flex-row space-x-2 mb-4'>
-          <TextInput
-            className='flex-1 border p-2 rounded'
-            value={newTodo}
-            onChangeText={setNewTodo}
-            placeholder='New todo'
-          />
-          <Button
-            title='Add'
-            onPress={() => {
-              if (newTodo.trim()) {
-                todos.addTodo(newTodo.trim());
-                setNewTodo("");
-              }
-            }}
-          />
-        </View>
-        <FlatList
-          data={todos.todos}
-          keyExtractor={(_, index) => index.toString()}
-          renderItem={({ item, index }) => (
-            <TodoItem todo={item} onRemove={() => todos.removeTodo(index)} />
-          )}
-        />
+        {/* Todo implementation */}
       </View>
     </View>
   );
 });
-
-const TodoItem = observer(
-  ({ todo, onRemove }: { todo: string; onRemove: () => void }) => (
-    <View className='flex-row justify-between items-center p-2 bg-gray-100 mb-2 rounded'>
-      <Text>{todo}</Text>
-      <Button title='Remove' onPress={onRemove} color='red' />
-    </View>
-  )
-);
 ```
 
-## Testing
+## Integration with Expo Router
 
-```typescript
-// src/store/mobx/__tests__/store.test.ts
-import { rootStore } from "../store";
+```typescript:src/app/_layout.tsx
+import { Stack } from "expo-router";
 
-describe("Counter Store", () => {
-  it("should handle increment", () => {
-    rootStore.counter.increment();
-    expect(rootStore.counter.value).toBe(1);
-  });
-
-  it("should handle decrement", () => {
-    rootStore.counter.decrement();
-    expect(rootStore.counter.value).toBe(0);
-  });
-});
-
-describe("Todo Store", () => {
-  it("should add todos", () => {
-    rootStore.todos.addTodo("Test todo");
-    expect(rootStore.todos.todos).toContain("Test todo");
-    expect(rootStore.todos.todoCount).toBe(1);
-  });
-
-  it("should remove todos", () => {
-    rootStore.todos.removeTodo(0);
-    expect(rootStore.todos.todoCount).toBe(0);
-  });
-});
-```
-
-## Performance Optimization
-
-1. Use computed values for derived state:
-
-```typescript
-class TodoStore {
-  // ...
-  get completedTodos() {
-    return this.todos.filter((todo) => todo.completed);
-  }
-
-  get activeTodos() {
-    return this.todos.filter((todo) => !todo.completed);
-  }
-}
-```
-
-2. Implement proper component granularity:
-
-```typescript
-const TodoList = observer(({ todos, onRemove }: TodoListProps) => {
+export default function Layout() {
   return (
-    <FlatList
-      data={todos}
-      renderItem={({ item, index }) => (
-        <TodoItem todo={item} onRemove={() => onRemove(index)} />
-      )}
-    />
+    <Stack>
+      <Stack.Screen
+        name="mobx"
+        options={{
+          headerShown: true,
+          presentation: "modal",
+          animation: "slide_from_bottom",
+          contentStyle: {
+            backgroundColor: isDark ? "#000" : "#fff",
+          },
+        }}
+      />
+    </Stack>
   );
-});
+}
 ```
 
 ## Best Practices
 
 1. **Store Organization**
 
-   - Use separate stores for different domains
-   - Keep stores focused and small
-   - Use computed values for derived state
+   - Keep stores small and focused
+   - Use computed properties
+   - Implement proper reactions
+   - Use makeAutoObservable
 
 2. **State Management**
 
-   - Make stores observable using makeAutoObservable
-   - Use actions for state modifications
-   - Leverage computed values
+   - Keep state normalized
+   - Use computed values for derived state
+   - Implement proper TypeScript types
+   - Handle async operations properly
 
 3. **Performance**
 
-   - Use proper component granularity
-   - Implement observer on components that need updates
-   - Use computed values for derived data
+   - Use computed values effectively
+   - Implement proper component granularity
+   - Use observer on components that need updates
+   - Keep updates minimal
 
-4. **Testing**
-   - Test store actions
-   - Test computed values
-   - Test component rendering
+4. **Integration**
+   - Configure proper screen options
+   - Handle safe areas correctly
+   - Support dark mode
+   - Use proper TypeScript types
 
 ## Common Pitfalls
 
 1. Not using observer on components that need updates
 2. Modifying state outside actions
-3. Creating too many small stores
+3. Creating too many stores
 4. Not leveraging computed values
-
-## Additional Features
-
-### Persistence
-
-```typescript
-// src/store/mobx/persistence.ts
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { autorun } from "mobx";
-
-export const setupPersistence = (store: RootStore) => {
-  // Load initial state
-  AsyncStorage.getItem("store").then((data) => {
-    if (data) {
-      const savedState = JSON.parse(data);
-      store.hydrate(savedState);
-    }
-  });
-
-  // Save state changes
-  autorun(() => {
-    const state = store.toJSON();
-    AsyncStorage.setItem("store", JSON.stringify(state));
-  });
-};
-```
-
-### DevTools Integration
-
-```typescript
-// src/store/mobx/devtools.ts
-import { spy } from "mobx";
-
-export const setupDevTools = () => {
-  if (__DEV__) {
-    spy((event) => {
-      if (event.type === "action") {
-        console.log(event.name, event);
-      }
-    });
-  }
-};
-```
 
 ## Additional Resources
 
 - [MobX Documentation](https://mobx.js.org/)
 - [MobX React Integration](https://mobx.js.org/react-integration.html)
 - [MobX Best Practices](https://mobx.js.org/defining-data-stores.html)
-- [MobX DevTools](https://github.com/mobxjs/mobx-devtools)
+- [MobX TypeScript Guide](https://mobx.js.org/installation.html#typescript)

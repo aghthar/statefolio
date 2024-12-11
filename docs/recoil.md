@@ -1,48 +1,33 @@
 # Recoil Implementation Guide
 
-## Setup
+## Implementation in Expo Router
 
-1. Install dependencies:
+```typescript:src/app/recoil.tsx
+import React from "react";
+import { atom, useRecoilState, useRecoilValue } from "recoil";
+import { BaseScreen } from "../components/BaseScreen";
+import { Text, View, Pressable, useColorScheme } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-```bash
-npm install recoil
-```
-
-2. Wrap your app with RecoilRoot:
-
-```typescript
-// src/app/index.tsx
-import { RecoilRoot } from "recoil";
-
-function App() {
-  return (
-    <RecoilRoot>
-      <NavigationContainer>{/* ... */}</NavigationContainer>
-    </RecoilRoot>
-  );
+// Types
+interface Todo {
+  id: string;
+  text: string;
 }
-```
 
-## Store Implementation
-
-```typescript
-// src/store/recoil/atoms.ts
-import { atom, selector } from "recoil";
-
-// Counter Atom
-export const counterState = atom({
+// Atoms
+const counterState = atom({
   key: "counterState",
   default: 0,
 });
 
-// Todos Atom
-export const todosState = atom<string[]>({
+const todosState = atom<Todo[]>({
   key: "todosState",
   default: [],
 });
 
-// Derived States (Selectors)
-export const todoStatsState = selector({
+// Selectors
+const todoStatsState = selector({
   key: "todoStatsState",
   get: ({ get }) => {
     const todos = get(todosState);
@@ -52,211 +37,92 @@ export const todoStatsState = selector({
     };
   },
 });
-```
 
-## Actions Implementation
-
-```typescript
-// src/store/recoil/actions.ts
-import { useRecoilState, useSetRecoilState } from "recoil";
-import { counterState, todosState } from "./atoms";
-
-export function useCounterActions() {
-  const setCounter = useSetRecoilState(counterState);
+// Actions
+export function useRecoilActions() {
+  const [, setCounter] = useRecoilState(counterState);
+  const [, setTodos] = useRecoilState(todosState);
 
   return {
-    increment: () => setCounter((prev) => prev + 1),
-    decrement: () => setCounter((prev) => prev - 1),
-  };
-}
-
-export function useTodoActions() {
-  const setTodos = useSetRecoilState(todosState);
-
-  return {
-    addTodo: (todo: string) => setTodos((prev) => [...prev, todo]),
-    removeTodo: (index: number) =>
-      setTodos((prev) => prev.filter((_, i) => i !== index)),
+    increment: () => setCounter((c) => c + 1),
+    decrement: () => setCounter((c) => c - 1),
+    addTodo: (text: string) =>
+      setTodos((prev) => [...prev, { id: Date.now().toString(), text }]),
+    removeTodo: (id: string) =>
+      setTodos((prev) => prev.filter((todo) => todo.id !== id)),
   };
 }
 ```
 
-## Screen Implementation
+## Screen Implementation with Safe Areas and Dark Mode
 
-```typescript
-// src/screens/RecoilScreen.tsx
-import React, { useState, useCallback } from "react";
-import { View, Text, TextInput, Button, FlatList } from "react-native";
-import { useRecoilValue } from "recoil";
-import {
-  counterState,
-  todosState,
-  todoStatsState,
-} from "../store/recoil/atoms";
-import { useCounterActions, useTodoActions } from "../store/recoil/actions";
+```typescript:src/app/recoil.tsx
+export default function RecoilScreen() {
+  const insets = useSafeAreaInsets();
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === "dark";
 
-export function RecoilScreen() {
-  const [newTodo, setNewTodo] = useState("");
   const count = useRecoilValue(counterState);
   const todos = useRecoilValue(todosState);
   const stats = useRecoilValue(todoStatsState);
-  const { increment, decrement } = useCounterActions();
-  const { addTodo, removeTodo } = useTodoActions();
-
-  const handleAddTodo = useCallback(() => {
-    if (newTodo.trim()) {
-      addTodo(newTodo.trim());
-      setNewTodo("");
-    }
-  }, [newTodo, addTodo]);
+  const { increment, decrement, addTodo, removeTodo } = useRecoilActions();
 
   return (
-    <View className='p-4'>
+    <View
+      style={{
+        flex: 1,
+        paddingTop: insets.top,
+        backgroundColor: isDark ? "#000" : "#fff",
+      }}
+    >
       {/* Counter Section */}
-      <View className='mb-8'>
-        <Text className='text-xl font-bold mb-4'>Counter: {count}</Text>
-        <View className='flex-row space-x-4'>
-          <Button title='Increment' onPress={increment} />
-          <Button title='Decrement' onPress={decrement} />
+      <View className="mb-8">
+        <Text className={`text-xl font-bold mb-4 ${isDark ? "text-white" : "text-black"}`}>
+          Counter: {count}
+        </Text>
+        <View className="flex-row space-x-4">
+          <Button title="Increment" onPress={increment} />
+          <Button title="Decrement" onPress={decrement} />
         </View>
       </View>
 
       {/* Todo Section */}
       <View>
-        <Text className='text-xl font-bold mb-4'>Todos ({stats.total})</Text>
-        <View className='flex-row space-x-2 mb-4'>
-          <TextInput
-            className='flex-1 border p-2 rounded'
-            value={newTodo}
-            onChangeText={setNewTodo}
-            placeholder='New todo'
-          />
-          <Button title='Add' onPress={handleAddTodo} />
-        </View>
-        <TodoList todos={todos} onRemove={removeTodo} />
+        <Text className={`text-xl font-bold mb-4 ${isDark ? "text-white" : "text-black"}`}>
+          Todos ({stats.total})
+        </Text>
+        {/* Todo implementation */}
       </View>
     </View>
   );
 }
-
-const TodoList = React.memo(
-  ({
-    todos,
-    onRemove,
-  }: {
-    todos: string[];
-    onRemove: (index: number) => void;
-  }) => (
-    <FlatList
-      data={todos}
-      keyExtractor={(_, index) => index.toString()}
-      renderItem={({ item, index }) => (
-        <TodoItem todo={item} onRemove={() => onRemove(index)} />
-      )}
-    />
-  )
-);
-
-const TodoItem = React.memo(
-  ({ todo, onRemove }: { todo: string; onRemove: () => void }) => (
-    <View className='flex-row justify-between items-center p-2 bg-gray-100 mb-2 rounded'>
-      <Text>{todo}</Text>
-      <Button title='Remove' onPress={onRemove} color='red' />
-    </View>
-  )
-);
 ```
 
-## Testing
+## Integration with Expo Router
 
-```typescript
-// src/store/recoil/__tests__/atoms.test.tsx
-import { renderHook, act } from "@testing-library/react-hooks";
-import { RecoilRoot, useRecoilState } from "recoil";
-import { counterState, todosState } from "../atoms";
+```typescript:src/app/_layout.tsx
+import { Stack } from "expo-router";
+import { RecoilRoot } from "recoil";
 
-const wrapper = ({ children }: { children: React.ReactNode }) => (
-  <RecoilRoot>{children}</RecoilRoot>
-);
-
-describe("Recoil Atoms", () => {
-  describe("Counter", () => {
-    it("should update counter value", () => {
-      const { result } = renderHook(() => useRecoilState(counterState), {
-        wrapper,
-      });
-
-      act(() => {
-        result.current[1]((prev) => prev + 1);
-      });
-
-      expect(result.current[0]).toBe(1);
-    });
-  });
-
-  describe("Todos", () => {
-    it("should add and remove todos", () => {
-      const { result } = renderHook(() => useRecoilState(todosState), {
-        wrapper,
-      });
-
-      act(() => {
-        result.current[1]((prev) => [...prev, "Test todo"]);
-      });
-
-      expect(result.current[0]).toContain("Test todo");
-
-      act(() => {
-        result.current[1]((prev) => prev.filter((_, i) => i !== 0));
-      });
-
-      expect(result.current[0]).toHaveLength(0);
-    });
-  });
-});
-```
-
-## Performance Optimization
-
-1. Use selectors for derived state:
-
-```typescript
-// src/store/recoil/selectors.ts
-import { selector } from "recoil";
-import { todosState } from "./atoms";
-
-export const filteredTodosState = selector({
-  key: "filteredTodosState",
-  get: ({ get }) => {
-    const todos = get(todosState);
-    const filter = get(todoFilterState);
-
-    switch (filter) {
-      case "completed":
-        return todos.filter((todo) => todo.completed);
-      case "active":
-        return todos.filter((todo) => !todo.completed);
-      default:
-        return todos;
-    }
-  },
-});
-```
-
-2. Implement atom families for dynamic state:
-
-```typescript
-// src/store/recoil/atomFamilies.ts
-import { atomFamily } from "recoil";
-
-export const todoItemState = atomFamily({
-  key: "todoItemState",
-  default: (id: string) => ({
-    id,
-    text: "",
-    completed: false,
-  }),
-});
+export default function Layout() {
+  return (
+    <RecoilRoot>
+      <Stack>
+        <Stack.Screen
+          name="recoil"
+          options={{
+            headerShown: true,
+            presentation: "modal",
+            animation: "slide_from_bottom",
+            contentStyle: {
+              backgroundColor: isDark ? "#000" : "#fff",
+            },
+          }}
+        />
+      </Stack>
+    </RecoilRoot>
+  );
+}
 ```
 
 ## Best Practices
@@ -282,11 +148,11 @@ export const todoItemState = atomFamily({
    - Split atoms appropriately
    - Use React.memo for components
 
-4. **Testing**
-   - Test atoms and selectors separately
-   - Use proper RecoilRoot wrapper
-   - Test async selectors
-   - Test error cases
+4. **Integration**
+   - Wrap app with RecoilRoot
+   - Configure proper screen options
+   - Handle safe areas correctly
+   - Support dark mode
 
 ## Common Pitfalls
 
@@ -294,30 +160,6 @@ export const todoItemState = atomFamily({
 2. Overusing atom families
 3. Creating circular dependencies
 4. Not handling loading states
-
-## Additional Features
-
-### Persistence
-
-```typescript
-// src/store/recoil/persistence.ts
-import { AtomEffect } from "recoil";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-
-export const persistAtom =
-  <T>(key: string): AtomEffect<T> =>
-  ({ setSelf, onSet }) => {
-    AsyncStorage.getItem(key).then(
-      (savedValue) => savedValue != null && setSelf(JSON.parse(savedValue))
-    );
-
-    onSet((newValue, _, isReset) => {
-      isReset
-        ? AsyncStorage.removeItem(key)
-        : AsyncStorage.setItem(key, JSON.stringify(newValue));
-    });
-  };
-```
 
 ## Additional Resources
 

@@ -1,239 +1,118 @@
 # Jotai Implementation Guide
 
-## Setup
+## Implementation in Expo Router
 
-1. Install dependencies:
+```typescript:src/app/jotai.tsx
+import React from "react";
+import { atom, useAtom } from "jotai";
+import { BaseScreen } from "../components/BaseScreen";
+import { Text, View, Pressable, useColorScheme } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-```bash
-npm install jotai
-```
+// Types
+interface Todo {
+  id: string;
+  text: string;
+}
 
-## Store Implementation
-
-```typescript
-// src/store/jotai/atoms.ts
-import { atom } from "jotai";
-import { atomWithStorage } from "jotai/utils";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-
-// Counter Atom
-export const counterAtom = atomWithStorage("counter", 0, {
-  getItem: async (key) => {
-    const value = await AsyncStorage.getItem(key);
-    return value ? JSON.parse(value) : 0;
-  },
-  setItem: async (key, value) => {
-    await AsyncStorage.setItem(key, JSON.stringify(value));
-  },
-});
-
-// Todos Atom
-export const todosAtom = atomWithStorage<string[]>("todos", [], {
-  getItem: async (key) => {
-    const value = await AsyncStorage.getItem(key);
-    return value ? JSON.parse(value) : [];
-  },
-  setItem: async (key, value) => {
-    await AsyncStorage.setItem(key, JSON.stringify(value));
-  },
-});
+// Atoms
+const countAtom = atom(0);
+const todosAtom = atom<Todo[]>([]);
 
 // Derived Atoms
-export const todoStatsAtom = atom((get) => {
+const todoStatsAtom = atom((get) => {
   const todos = get(todosAtom);
   return {
     total: todos.length,
     isEmpty: todos.length === 0,
   };
 });
-```
 
-## Actions Implementation
-
-```typescript
-// src/store/jotai/actions.ts
-import { useSetAtom, useAtomValue } from "jotai";
-import { counterAtom, todosAtom } from "./atoms";
-
-export function useCounterActions() {
-  const setCounter = useSetAtom(counterAtom);
+// Actions
+export function useJotaiActions() {
+  const [, setCount] = useAtom(countAtom);
+  const [, setTodos] = useAtom(todosAtom);
 
   return {
-    increment: () => setCounter((prev) => prev + 1),
-    decrement: () => setCounter((prev) => prev - 1),
-  };
-}
-
-export function useTodoActions() {
-  const setTodos = useSetAtom(todosAtom);
-
-  return {
-    addTodo: (todo: string) => setTodos((prev) => [...prev, todo]),
-    removeTodo: (index: number) =>
-      setTodos((prev) => prev.filter((_, i) => i !== index)),
+    increment: () => setCount((c) => c + 1),
+    decrement: () => setCount((c) => c - 1),
+    addTodo: (text: string) =>
+      setTodos((prev) => [...prev, { id: Date.now().toString(), text }]),
+    removeTodo: (id: string) =>
+      setTodos((prev) => prev.filter((todo) => todo.id !== id)),
   };
 }
 ```
 
-## Screen Implementation
+## Screen Implementation with Safe Areas and Dark Mode
 
-```typescript
-// src/screens/JotaiScreen.tsx
-import React, { useState, useCallback } from "react";
-import { View, Text, TextInput, Button, FlatList } from "react-native";
-import { useAtomValue } from "jotai";
-import { counterAtom, todosAtom, todoStatsAtom } from "../store/jotai/atoms";
-import { useCounterActions, useTodoActions } from "../store/jotai/actions";
+```typescript:src/app/jotai.tsx
+export default function JotaiScreen() {
+  const insets = useSafeAreaInsets();
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === "dark";
 
-export function JotaiScreen() {
-  const [newTodo, setNewTodo] = useState("");
-  const count = useAtomValue(counterAtom);
-  const todos = useAtomValue(todosAtom);
-  const stats = useAtomValue(todoStatsAtom);
-  const { increment, decrement } = useCounterActions();
-  const { addTodo, removeTodo } = useTodoActions();
-
-  const handleAddTodo = useCallback(() => {
-    if (newTodo.trim()) {
-      addTodo(newTodo.trim());
-      setNewTodo("");
-    }
-  }, [newTodo, addTodo]);
+  const [count] = useAtom(countAtom);
+  const [todos] = useAtom(todosAtom);
+  const stats = useAtom(todoStatsAtom);
+  const { increment, decrement, addTodo, removeTodo } = useJotaiActions();
 
   return (
-    <View className='p-4'>
+    <View
+      style={{
+        flex: 1,
+        paddingTop: insets.top,
+        backgroundColor: isDark ? "#000" : "#fff",
+      }}
+    >
       {/* Counter Section */}
-      <View className='mb-8'>
-        <Text className='text-xl font-bold mb-4'>Counter: {count}</Text>
-        <View className='flex-row space-x-4'>
-          <Button title='Increment' onPress={increment} />
-          <Button title='Decrement' onPress={decrement} />
+      <View className="mb-8">
+        <Text className={`text-xl font-bold mb-4 ${isDark ? "text-white" : "text-black"}`}>
+          Counter: {count}
+        </Text>
+        <View className="flex-row space-x-4">
+          <Button title="Increment" onPress={increment} />
+          <Button title="Decrement" onPress={decrement} />
         </View>
       </View>
 
       {/* Todo Section */}
       <View>
-        <Text className='text-xl font-bold mb-4'>Todos ({stats.total})</Text>
-        <View className='flex-row space-x-2 mb-4'>
-          <TextInput
-            className='flex-1 border p-2 rounded'
-            value={newTodo}
-            onChangeText={setNewTodo}
-            placeholder='New todo'
-          />
-          <Button title='Add' onPress={handleAddTodo} />
-        </View>
-        <TodoList todos={todos} onRemove={removeTodo} />
+        <Text className={`text-xl font-bold mb-4 ${isDark ? "text-white" : "text-black"}`}>
+          Todos ({stats.total})
+        </Text>
+        {/* Todo implementation */}
       </View>
     </View>
   );
 }
-
-const TodoList = React.memo(
-  ({
-    todos,
-    onRemove,
-  }: {
-    todos: string[];
-    onRemove: (index: number) => void;
-  }) => (
-    <FlatList
-      data={todos}
-      keyExtractor={(_, index) => index.toString()}
-      renderItem={({ item, index }) => (
-        <TodoItem todo={item} onRemove={() => onRemove(index)} />
-      )}
-    />
-  )
-);
-
-const TodoItem = React.memo(
-  ({ todo, onRemove }: { todo: string; onRemove: () => void }) => (
-    <View className='flex-row justify-between items-center p-2 bg-gray-100 mb-2 rounded'>
-      <Text>{todo}</Text>
-      <Button title='Remove' onPress={onRemove} color='red' />
-    </View>
-  )
-);
 ```
 
-## Testing
+## Integration with Expo Router
 
-```typescript
-// src/store/jotai/__tests__/atoms.test.tsx
-import { renderHook, act } from "@testing-library/react-hooks";
-import { useAtom } from "jotai";
-import { counterAtom, todosAtom } from "../atoms";
+```typescript:src/app/_layout.tsx
+import { Stack } from "expo-router";
 import { Provider } from "jotai";
 
-describe("Jotai Atoms", () => {
-  const wrapper = ({ children }: { children: React.ReactNode }) => (
-    <Provider>{children}</Provider>
+export default function Layout() {
+  return (
+    <Provider>
+      <Stack>
+        <Stack.Screen
+          name="jotai"
+          options={{
+            headerShown: true,
+            presentation: "modal",
+            animation: "slide_from_bottom",
+            contentStyle: {
+              backgroundColor: isDark ? "#000" : "#fff",
+            },
+          }}
+        />
+      </Stack>
+    </Provider>
   );
-
-  describe("Counter", () => {
-    it("should handle counter updates", () => {
-      const { result } = renderHook(() => useAtom(counterAtom), { wrapper });
-
-      act(() => {
-        result.current[1]((prev) => prev + 1);
-      });
-
-      expect(result.current[0]).toBe(1);
-    });
-  });
-
-  describe("Todos", () => {
-    it("should handle todos updates", () => {
-      const { result } = renderHook(() => useAtom(todosAtom), { wrapper });
-
-      act(() => {
-        result.current[1]((prev) => [...prev, "Test todo"]);
-      });
-
-      expect(result.current[0]).toContain("Test todo");
-    });
-  });
-});
-```
-
-## Performance Optimization
-
-1. Use derived atoms for computed values:
-
-```typescript
-// src/store/jotai/derivedAtoms.ts
-import { atom } from "jotai";
-import { todosAtom } from "./atoms";
-
-export const filteredTodosAtom = atom((get) => {
-  const todos = get(todosAtom);
-  const filter = get(filterAtom);
-
-  switch (filter) {
-    case "completed":
-      return todos.filter((todo) => todo.completed);
-    case "active":
-      return todos.filter((todo) => !todo.completed);
-    default:
-      return todos;
-  }
-});
-```
-
-2. Use atomFamily for dynamic atoms:
-
-```typescript
-// src/store/jotai/atomFamilies.ts
-import { atomFamily } from "jotai/utils";
-
-export const todoItemFamily = atomFamily((id: string) =>
-  atom({
-    id,
-    text: "",
-    completed: false,
-  })
-);
+}
 ```
 
 ## Best Practices
@@ -242,15 +121,15 @@ export const todoItemFamily = atomFamily((id: string) =>
 
    - Keep atoms small and focused
    - Use derived atoms for computed values
-   - Implement proper atom families
-   - Use atomWithStorage when needed
+   - Group related atoms together
+   - Use proper TypeScript types
 
 2. **State Management**
 
-   - Prefer primitive atoms
-   - Use derived atoms for complex logic
-   - Keep atoms independent
-   - Implement proper error handling
+   - Use atoms for primitive values
+   - Implement derived atoms for computed state
+   - Keep state normalized
+   - Handle async operations properly
 
 3. **Performance**
 
@@ -259,52 +138,18 @@ export const todoItemFamily = atomFamily((id: string) =>
    - Use React.memo when needed
    - Keep state granular
 
-4. **Testing**
-   - Test atoms independently
-   - Test derived atoms
-   - Test component integration
-   - Test async operations
+4. **Integration**
+   - Wrap app with Provider
+   - Configure proper screen options
+   - Handle safe areas correctly
+   - Support dark mode
 
 ## Common Pitfalls
 
-1. Creating unnecessary derived atoms
-2. Not handling async operations properly
-3. Overcomplicating atom structure
-4. Not implementing proper error boundaries
-
-## Additional Features
-
-### Custom Hooks with Atoms
-
-```typescript
-// src/store/jotai/customHooks.ts
-import { atom, useAtom } from "jotai";
-
-export function useLocalStorage<T>(key: string, initialValue: T) {
-  const baseAtom = atom(initialValue);
-  const derivedAtom = atom(
-    (get) => get(baseAtom),
-    (get, set, update: T) => {
-      set(baseAtom, update);
-      AsyncStorage.setItem(key, JSON.stringify(update));
-    }
-  );
-  return useAtom(derivedAtom);
-}
-```
-
-### Debug Atoms
-
-```typescript
-// src/store/jotai/debug.ts
-import { atom } from "jotai";
-import { debugAtom } from "jotai/utils";
-
-const debuggedAtom = debugAtom(myAtom, {
-  name: "myAtom",
-  enabled: __DEV__,
-});
-```
+1. Not wrapping the app with Provider
+2. Creating unnecessary derived atoms
+3. Not handling async operations properly
+4. Overcomplicating atom structure
 
 ## Additional Resources
 

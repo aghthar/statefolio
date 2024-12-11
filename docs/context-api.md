@@ -1,11 +1,20 @@
 # Context API Implementation Guide
 
-## Setup
+## Implementation in Expo Router
 
-No additional dependencies needed as Context API is built into React.
+````typescript:src/app/context.tsx
+import React, { createContext, useContext, useReducer } from "react";
+import { Text, View, Pressable, useColorScheme } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-## Store Implementation
+// Types
+interface State {
+  count: number;
+  todos: Todo[];
+}
 
+interface Todo {
+  id: string;
 ```typescript:src/store/context/store.ts
 import React, { createContext, useContext, useReducer } from 'react';
 
@@ -64,7 +73,7 @@ function reducer(state: State, action: Action): State {
       return state;
   }
 }
-```
+````
 
 ## Context Provider Implementation
 
@@ -116,12 +125,12 @@ import { useDispatch } from './Provider';
 
 export function useCounterActions() {
   const dispatch = useDispatch();
-  
+
   return {
     increment: useCallback(() => {
       dispatch({ type: 'INCREMENT' });
     }, [dispatch]),
-    
+
     decrement: useCallback(() => {
       dispatch({ type: 'DECREMENT' });
     }, [dispatch]),
@@ -130,12 +139,12 @@ export function useCounterActions() {
 
 export function useTodoActions() {
   const dispatch = useDispatch();
-  
+
   return {
     addTodo: useCallback((todo: string) => {
       dispatch({ type: 'ADD_TODO', payload: todo });
     }, [dispatch]),
-    
+
     removeTodo: useCallback((index: number) => {
       dispatch({ type: 'REMOVE_TODO', payload: index });
     }, [dispatch]),
@@ -191,18 +200,18 @@ export function ContextScreen() {
           />
           <Button title="Add" onPress={handleAddTodo} />
         </View>
-        <TodoList 
-          todos={state.todos.items} 
-          onRemove={removeTodo} 
+        <TodoList
+          todos={state.todos.items}
+          onRemove={removeTodo}
         />
       </View>
     </View>
   );
 }
 
-const TodoList = React.memo(({ 
-  todos, 
-  onRemove 
+const TodoList = React.memo(({
+  todos,
+  onRemove
 }: {
   todos: string[];
   onRemove: (index: number) => void;
@@ -216,9 +225,9 @@ const TodoList = React.memo(({
   />
 ));
 
-const TodoItem = React.memo(({ 
-  todo, 
-  onRemove 
+const TodoItem = React.memo(({
+  todo,
+  onRemove
 }: {
   todo: string;
   onRemove: () => void;
@@ -332,18 +341,21 @@ export function useTodoStats(todos: string[]) {
 ## Best Practices
 
 1. **Context Organization**
+
    - Split contexts by domain
    - Keep providers close to where they're needed
    - Use composition for multiple contexts
    - Implement proper TypeScript types
 
 2. **State Management**
+
    - Use reducers for complex state
    - Split state logically
    - Keep state normalized
    - Implement proper error boundaries
 
 3. **Performance**
+
    - Split contexts to minimize re-renders
    - Use memo for expensive computations
    - Implement proper component memoization
@@ -367,4 +379,4 @@ export function useTodoStats(todos: string[]) {
 - [React Context Documentation](https://reactjs.org/docs/context.html)
 - [React Hooks Documentation](https://reactjs.org/docs/hooks-reference.html)
 - [React TypeScript Guidelines](https://github.com/typescript-cheatsheets/react)
-- [React Performance Optimization](https://reactjs.org/docs/optimizing-performance.html) 
+- [React Performance Optimization](https://reactjs.org/docs/optimizing-performance.html)
