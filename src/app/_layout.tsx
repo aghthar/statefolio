@@ -7,14 +7,15 @@ import {
 import { useColorScheme } from "react-native";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
+import { Stack } from "expo-router";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import "../../global.css";
-import { Stack } from "expo-router";
 
 // Keep the splash screen visible while we fetch resources
 SplashScreen.preventAutoHideAsync();
 
-const RootLayout = () => {
+export default function RootLayout() {
   const colorScheme = useColorScheme();
 
   useEffect(() => {
@@ -22,71 +23,35 @@ const RootLayout = () => {
   }, []);
 
   return (
-    <>
+    <SafeAreaProvider>
       <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
         <StatusBar style={colorScheme === "dark" ? "light" : "dark"} />
         <Stack
           screenOptions={{
-            headerShown: true,
-            headerTitleAlign: "center",
+            headerShown: false,
+            headerStyle: {
+              backgroundColor: colorScheme === "dark" ? "#000" : "#fff",
+            },
+            headerTintColor: colorScheme === "dark" ? "#fff" : "#000",
             contentStyle: {
-              backgroundColor: colorScheme === "dark" ? "#111827" : "#F9FAFB",
+              backgroundColor: colorScheme === "dark" ? "#000" : "#fff",
             },
           }}
         >
           <Stack.Screen
             name='index'
             options={{
-              title: "Statefolio",
               headerShown: false,
             }}
           />
           <Stack.Screen
-            name='redux'
+            name='[...missing]'
             options={{
-              title: "Redux Toolkit",
-              headerBackTitle: "Back",
-            }}
-          />
-          <Stack.Screen
-            name='mobx'
-            options={{
-              title: "MobX",
-              headerBackTitle: "Back",
-            }}
-          />
-          <Stack.Screen
-            name='zustand'
-            options={{
-              title: "Zustand",
-              headerBackTitle: "Back",
-            }}
-          />
-          <Stack.Screen
-            name='recoil'
-            options={{
-              title: "Recoil",
-              headerBackTitle: "Back",
-            }}
-          />
-          <Stack.Screen
-            name='context'
-            options={{
-              title: "Context API",
-              headerBackTitle: "Back",
-            }}
-          />
-          <Stack.Screen
-            name='jotai'
-            options={{
-              title: "Jotai",
-              headerBackTitle: "Back",
+              headerShown: true,
             }}
           />
         </Stack>
       </ThemeProvider>
-    </>
+    </SafeAreaProvider>
   );
-};
-
-export default RootLayout;
+}

@@ -1,7 +1,8 @@
 import React from "react";
-import { View, Text, Pressable } from "react-native";
+import { View, Text, Pressable, useColorScheme } from "react-native";
 import { Link } from "expo-router";
 import { BlurView } from "expo-blur";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 interface StateLibrary {
   id: string;
@@ -56,47 +57,59 @@ const stateLibraries: StateLibrary[] = [
   },
 ];
 
-const HomeScreen = () => {
+export default function HomeScreen() {
+  const insets = useSafeAreaInsets();
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === "dark";
+
   return (
-    <View className='flex-1 bg-gray-50 dark:bg-gray-900'>
-      {/* Header - Updated with centered title and emojis */}
+    <View
+      style={{
+        flex: 1,
+        paddingTop: insets.top,
+        backgroundColor: isDark ? "#000" : "#fff",
+      }}
+    >
       <View className='px-4 py-6'>
-        <View className='flex-row justify-center items-center'>
-          <Text className='text-3xl font-bold text-gray-900 dark:text-white text-center'>
-            🔥 Statefolio 🔥
-          </Text>
-        </View>
-        <Text className='mt-2 text-gray-600 dark:text-gray-300 text-center'>
+        <Text
+          className={`text-2xl font-bold text-center mb-2 ${
+            isDark ? "text-white" : "text-black"
+          }`}
+        >
+          🔥 Statefolio 🔥
+        </Text>
+        <Text
+          className={`text-center mb-8 ${
+            isDark ? "text-gray-400" : "text-gray-600"
+          }`}
+        >
           Choose your state management adventure
         </Text>
-      </View>
 
-      {/* Library Grid - Updated with fixed dimensions */}
-      <View className='flex-1 px-4'>
-        <View className='flex-row flex-wrap justify-center gap-4'>
+        {/* Grid of state management options */}
+        <View className='flex-row flex-wrap justify-between'>
           {stateLibraries.map((lib) => (
             <Link key={lib.id} href={lib.route} asChild>
-              <Pressable className='w-40 h-40'>
-                {({ pressed }) => (
-                  <BlurView
-                    intensity={100}
-                    className={`flex-1 p-4 rounded-xl overflow-hidden ${
-                      pressed ? "opacity-80" : "opacity-100"
-                    }`}
-                  >
-                    <View className='flex-1 items-center justify-between'>
-                      <Text className='text-3xl'>{lib.icon}</Text>
-                      <View className='items-center'>
-                        <Text className='text-base font-bold text-gray-900 dark:text-white text-center'>
-                          {lib.name}
-                        </Text>
-                        <Text className='text-xs text-gray-600 dark:text-gray-300 text-center mt-1'>
-                          {lib.description}
-                        </Text>
-                      </View>
-                    </View>
-                  </BlurView>
-                )}
+              <Pressable
+                className={`w-[48%] mb-4 p-4 rounded-2xl ${
+                  isDark ? "bg-gray-800/80" : "bg-gray-100"
+                }`}
+              >
+                <Text className='text-3xl mb-2'>{lib.icon}</Text>
+                <Text
+                  className={`font-semibold mb-1 ${
+                    isDark ? "text-white" : "text-black"
+                  }`}
+                >
+                  {lib.name}
+                </Text>
+                <Text
+                  className={`text-sm ${
+                    isDark ? "text-gray-400" : "text-gray-600"
+                  }`}
+                >
+                  {lib.description}
+                </Text>
               </Pressable>
             </Link>
           ))}
@@ -104,6 +117,4 @@ const HomeScreen = () => {
       </View>
     </View>
   );
-};
-
-export default HomeScreen;
+}

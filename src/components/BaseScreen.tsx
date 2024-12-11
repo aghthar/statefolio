@@ -1,7 +1,15 @@
-import React from "react";
-import { View, Text, TextInput, Pressable } from "react-native";
-import { FlatList } from "react-native-gesture-handler";
+import React, { useState } from "react";
+import {
+  View,
+  Text,
+  TextInput,
+  Pressable,
+  useWindowDimensions,
+  useColorScheme,
+} from "react-native";
+import { FlatList, GestureHandlerRootView } from "react-native-gesture-handler";
 import { Ionicons } from "@expo/vector-icons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 interface Todo {
   id: string;
@@ -15,9 +23,27 @@ interface BaseScreenProps {
 }
 
 const TodoItem = React.memo(
-  ({ todo, onRemove }: { todo: Todo; onRemove: () => void }) => (
-    <View className='flex-row justify-between items-center p-4 bg-white/10 backdrop-blur-lg rounded-2xl mb-3 border border-white/20'>
-      <Text className='text-lg text-white/90 font-medium flex-1 mr-4'>
+  ({
+    todo,
+    onRemove,
+    isDark,
+  }: {
+    todo: Todo;
+    onRemove: () => void;
+    isDark: boolean;
+  }) => (
+    <View
+      className={`flex-row justify-between items-center p-4 rounded-2xl mb-3 border ${
+        isDark
+          ? "bg-gray-800/80 border-gray-700"
+          : "bg-gray-100 border-gray-200"
+      }`}
+    >
+      <Text
+        className={`text-lg font-medium flex-1 mr-4 ${
+          isDark ? "text-white" : "text-black"
+        }`}
+      >
         {todo.text}
       </Text>
       <Pressable
@@ -30,60 +56,70 @@ const TodoItem = React.memo(
   )
 );
 
-export const BaseScreen: React.FC<BaseScreenProps> = ({
+export const BaseScreen = ({
   todos,
   onAddTodo,
   onRemoveTodo,
-}) => {
-  const [newTodo, setNewTodo] = React.useState("");
+}: BaseScreenProps) => {
+  const [newTodo, setNewTodo] = useState("");
+  const insets = useSafeAreaInsets();
+  const { height } = useWindowDimensions();
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === "dark";
 
-  const handleAddTodo = React.useCallback(() => {
-    if (newTodo.trim()) {
-      onAddTodo(newTodo.trim());
-      setNewTodo("");
-    }
-  }, [newTodo, onAddTodo]);
+  // Calculate dynamic top margin based on device height
+  const dynamicTopMargin = Math.max(height * 0.05, 20); // minimum 20px, or 5% of height
 
   return (
-    <View className='flex-1 p-4 bg-gray-900'>
-      {/* Todo Section */}
-      <View className='flex-1'>
-        <Text className='text-2xl font-bold text-white/95 mb-6'>
-          Todos ({todos.length})
-        </Text>
-
-        {/* Input Section */}
-        <View className='flex-row space-x-2 mb-6'>
-          <View className='flex-1 relative'>
-            <TextInput
-              className='w-full bg-white/10 backdrop-blur-lg border border-white/20 p-4 rounded-2xl text-white text-base'
-              value={newTodo}
-              onChangeText={setNewTodo}
-              placeholder='Add a new todo'
-              placeholderTextColor='rgba(255,255,255,0.4)'
-              onSubmitEditing={handleAddTodo}
-              returnKeyType='done'
-            />
-            <Pressable
-              onPress={handleAddTodo}
-              className='absolute right-3 top-3 w-8 h-8 rounded-full bg-blue-500/90 items-center justify-center active:opacity-70'
-            >
-              <Ionicons name='add' size={20} color='white' />
-            </Pressable>
-          </View>
-        </View>
-
-        {/* Todo List */}
-        <FlatList
-          data={todos}
-          keyExtractor={(todo) => todo.id}
-          renderItem={({ item }) => (
-            <TodoItem todo={item} onRemove={() => onRemoveTodo(item.id)} />
-          )}
-          showsVerticalScrollIndicator={false}
-          contentContainerClassName='pb-4'
+    <GestureHandlerRootView
+      style={{
+        flex: 1,
+        paddingTop: insets.top + dynamicTopMargin,
+        paddingHorizontal: 16,
+        paddingBottom: insets.bottom + 16,
+        backgroundColor: isDark ? "#000" : "#fff",
+      }}
+    >
+      <View className='flex-row items-center mb-4'>
+        <TextInput
+          value={newTodo}
+          onChangeText={setNewTodo}
+          placeholder='Add a new todo'
+          placeholderTextColor={isDark ? "#aaa" : "#666"}
+          style={{
+            flex: 1,
+            padding: 12,
+            backgroundColor: isDark ? "#1e1e1e" : "#f5f5f5",
+            borderRadius: 8,
+            color: isDark ? "#fff" : "#000",
+            marginRight: 8,
+          }}
         />
+        <Pressable
+          onPress={() => {
+            if (newTodo.trim()) {
+              onAddTodo(newTodo);
+              setNewTodo("");
+            }
+          }}
+          className={`w-12 h-12 rounded-full items-center justify-center active:opacity-70 ${
+            isDark ? "bg-gray-800" : "bg-gray-200"
+          }`}
+        >
+          <Ionicons name='add' size={24} color={isDark ? "#fff" : "#000"} />
+        </Pressable>
       </View>
-    </View>
+      <FlatList
+        data={todos}
+        keyExtractor={(item) => item.id}
+        renderItem={({ item }) => (
+          <TodoItem
+            todo={item}
+            onRemove={() => onRemoveTodo(item.id)}
+            isDark={isDark}
+          />
+        )}
+      />
+    </GestureHandlerRootView>
   );
 };
