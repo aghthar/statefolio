@@ -1,6 +1,1 @@
-[test]
-preload = ["./jest.setup.js"]
-coverage = true
-environment = "node"
-setupFiles = ["./jest.setup.js"]
-testMatch = ["**/*.test.{ts,tsx}"] 
+ 
