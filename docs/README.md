@@ -2,6 +2,8 @@
 
 Hey there, fellow React Native developer! 👋 Tired of scratching your head over which state management solution to pick? We've all been there! Let's make this journey fun and insightful.
 
+![Statefolio Demo](../assets/statefolio-demo.gif)
+
 ## 🎯 What's This All About?
 
 We've built the same app six different ways (yes, we're that crazy!) to help you understand each state management solution. Think of it as a "Choose Your Own Adventure" book, but for code!
